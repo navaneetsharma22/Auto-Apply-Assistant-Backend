@@ -2,19 +2,19 @@ const mongoose = require('mongoose');
 
 const preferenceSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-    targetRoles: [{ type: String }],
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    label: { type: String, default: 'Default Preference' },
+    roles: [{ type: String }],
     locations: [{ type: String }],
-    minSalary: { type: Number, default: 0 },
-    platforms: {
-      naukri: { type: Boolean, default: true },
-      indeed: { type: Boolean, default: true },
-      linkedin: { type: Boolean, default: true },
-    },
-    dailyApplyCap: { type: Number, default: 15, max: 50 },
-    searchSchedule: { type: String, default: '0 9 * * *' }, // Cron format, e.g., 9 AM daily
+    experience: { type: mongoose.Schema.Types.Mixed, default: '' },
+    salaryRange: { type: mongoose.Schema.Types.Mixed, default: '' },
+    jobType: { type: String, default: '' },
+    platforms: [{ type: String }],
+    dailyApplyCap: { type: Number, default: 15 },
+    standardAnswers: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model('Preference', preferenceSchema);
+

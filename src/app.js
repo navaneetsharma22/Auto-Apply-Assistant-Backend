@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/authRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const preferenceRoutes = require('./routes/preferenceRoutes');
 
 const app = express();
 
@@ -25,7 +27,10 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/preferences', preferenceRoutes);
 
 module.exports = app;
+
 
 
