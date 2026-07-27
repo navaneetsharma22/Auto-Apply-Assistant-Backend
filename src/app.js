@@ -6,6 +6,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const preferenceRoutes = require('./routes/preferenceRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
 
 const app = express();
 
@@ -33,8 +34,10 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/preferences', preferenceRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 module.exports = app;
+
 
 
 

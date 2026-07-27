@@ -1,42 +1,93 @@
 const Session = require('../models/Session');
-const { encrypt, decrypt } = require('../utils/encryption');
 
-const saveSession = async (req, res, next) => {
+const ALL_PLATFORMS = ['naukri', 'indeed', 'linkedin'];
+
+// GET /api/sessions
+const getSessions = async (req, res) => {
   try {
-    const { platform, sessionData } = req.body;
-
-    if (!platform || !sessionData) {
-      return res.status(400).json({ success: false, message: 'Platform and sessionData are required.' });
-    }
-
-    const encryptedSessionData = encrypt(sessionData);
-
-    const session = await Session.findOneAndUpdate(
-      { userId: req.user.id, platform },
-      { encryptedSessionData, isActive: true, lastVerifiedAt: new Date() },
-      { new: true, upsert: true }
+    const userSessions = await Session.find({ userId: req.userId }).select(
+      'platform updatedAt expired status'
     );
 
-    res.status(200).json({
-      success: true,
-      message: `Encrypted session saved for platform ${platform}`,
-      session: { platform: session.platform, isActive: session.isActive, lastVerifiedAt: session.lastVerifiedAt },
+
+    const sessionMap = new Map();
+    userSessions.forEach((doc) => {
+      sessionMap.set(doc.platform, doc);
     });
+
+    const sessions = ALL_PLATFORMS.map((platform) => {
+      if (sessionMap.has(platform)) {
+        const doc = sessionMap.get(platform);
+        return {
+          platform,
+          connected: !doc.expired && doc.status !== 'pending_manual_login',
+          updatedAt: doc.updatedAt,
+          expired: doc.expired || false,
+        };
+      }
+      return {
+        platform,
+        connected: false,
+      };
+    });
+
+    return res.status(200).json({ sessions });
   } catch (error) {
-    next(error);
+    console.error('[GET /api/sessions Error]', error);
+    return res.status(500).json({ error: 'Something went wrong' });
   }
 };
 
-const getSessionStatus = async (req, res, next) => {
+// POST /api/sessions/:platform/initiate
+const initiateSession = async (req, res) => {
   try {
-    const sessions = await Session.find({ userId: req.user.id }).select('-encryptedSessionData');
-    res.status(200).json({ success: true, sessions });
+    const { platform } = req.params;
+
+    if (!ALL_PLATFORMS.includes(platform)) {
+      return res.status(400).json({ error: 'Invalid platform' });
+    }
+
+    await Session.findOneAndUpdate(
+      { userId: req.userId, platform },
+      {
+        userId: req.userId,
+        platform,
+        status: 'pending_manual_login',
+        expired: false,
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.status(202).json({
+      message: 'Login request queued. Open the desktop worker to complete login.',
+    });
   } catch (error) {
-    next(error);
+    console.error('[POST /api/sessions/:platform/initiate Error]', error);
+    return res.status(500).json({ error: 'Something went wrong' });
+  }
+};
+
+// DELETE /api/sessions/:platform
+const deleteSession = async (req, res) => {
+  try {
+    const { platform } = req.params;
+
+    if (!ALL_PLATFORMS.includes(platform)) {
+      return res.status(400).json({ error: 'Invalid platform' });
+    }
+
+    await Session.deleteOne({ userId: req.userId, platform });
+
+    return res.status(200).json({ message: 'Session removed' });
+  } catch (error) {
+    console.error('[DELETE /api/sessions/:platform Error]', error);
+    return res.status(500).json({ error: 'Something went wrong' });
   }
 };
 
 module.exports = {
-  saveSession,
-  getSessionStatus,
+  getSessions,
+  initiateSession,
+  deleteSession,
 };
+
