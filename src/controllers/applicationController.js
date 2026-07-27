@@ -1,74 +1,38 @@
 const Application = require('../models/Application');
-const Preference = require('../models/Preference');
 
-const getApplications = async (req, res, next) => {
+// GET /api/applications
+const getApplications = async (req, res) => {
   try {
-    const { status, platform } = req.query;
-    const filter = { userId: req.user.id };
-    if (status) filter.status = status;
-    if (platform) filter.platform = platform;
+    const { platform, status, dateFrom, dateTo } = req.query;
 
-    const applications = await Application.find(filter)
-      .populate('jobId')
-      .sort({ updatedAt: -1 });
+    const filter = { userId: req.userId };
 
-    res.status(200).json({ success: true, count: applications.length, applications });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const updateApplicationApproval = async (req, res, next) => {
-  try {
-    const { applicationId } = req.params;
-    const { action } = req.body; // 'approve' or 'skip'
-
-    if (!['approve', 'skip'].includes(action)) {
-      return res.status(400).json({ success: false, message: 'Action must be approve or skip.' });
+    if (platform) {
+      filter.platform = platform;
     }
 
-    // Daily apply cap check when approving
-    if (action === 'approve') {
-      const pref = await Preference.findOne({ userId: req.user.id });
-      const dailyCap = pref?.dailyApplyCap || 15;
+    if (status) {
+      filter.status = status;
+    }
 
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const approvedTodayCount = await Application.countDocuments({
-        userId: req.user.id,
-        status: { $in: ['approved', 'submitted'] },
-        updatedAt: { $gte: startOfDay },
-      });
-
-      if (approvedTodayCount >= dailyCap) {
-        return res.status(429).json({
-          success: false,
-          message: `Daily application limit of ${dailyCap} reached. Cannot approve more today.`,
-        });
+    if (dateFrom || dateTo) {
+      filter.appliedAt = {};
+      if (dateFrom) {
+        filter.appliedAt.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        filter.appliedAt.$lte = new Date(dateTo);
       }
     }
 
-    const application = await Application.findOneAndUpdate(
-      { _id: applicationId, userId: req.user.id },
-      {
-        status: action === 'approve' ? 'approved' : 'skipped',
-        approved: action === 'approve',
-      },
-      { new: true }
-    ).populate('jobId');
-
-    if (!application) {
-      return res.status(404).json({ success: false, message: 'Application not found.' });
-    }
-
-    res.status(200).json({ success: true, application });
+    const applications = await Application.find(filter).sort({ appliedAt: -1, createdAt: -1 });
+    return res.status(200).json({ applications });
   } catch (error) {
-    next(error);
+    return res.status(500).json({ error: error.message });
   }
 };
 
 module.exports = {
   getApplications,
-  updateApplicationApproval,
 };
+
