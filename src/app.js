@@ -7,13 +7,26 @@ const preferenceRoutes = require('./routes/preferenceRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
+const workerRoutes = require('./routes/workerRoutes');
 
 const app = express();
 
-// CORS restricted to frontend origin only
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:5174',
+].filter(Boolean);
+
+// CORS restricted to frontend origins
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow during local development
+      }
+    },
     credentials: true,
   })
 );
@@ -35,10 +48,6 @@ app.use('/api/preferences', preferenceRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/worker', workerRoutes);
 
 module.exports = app;
-
-
-
-
-
