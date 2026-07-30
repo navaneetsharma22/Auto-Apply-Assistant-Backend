@@ -18,11 +18,17 @@ const jobSchema = new mongoose.Schema(
       default: 'queued',
       index: true,
     },
+    needsManualReview: { type: Boolean, default: false },
     approvedAt: { type: Date, default: null },
     skippedAt: { type: Date, default: null },
+    appliedAt: { type: Date, default: null },
+    submitAttempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+jobSchema.index({ userId: 1, externalId: 1, platform: 1 }, { unique: true });
+jobSchema.index({ userId: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Job', jobSchema);
 
