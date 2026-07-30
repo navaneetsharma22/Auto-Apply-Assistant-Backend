@@ -14,5 +14,8 @@ const applicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+applicationSchema.index({ userId: 1, platform: 1, appliedAt: -1 });
+applicationSchema.index({ userId: 1, appliedAt: -1 });
+
 module.exports = mongoose.model('Application', applicationSchema);
 
